@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.threerings.flump</groupId>
   <artifactId>flump-exporter</artifactId>
-  <packaging>swc</packaging>
+  <packaging>pom</packaging>
   <version>1.5.5</version>
   <repositories>
     <repository>

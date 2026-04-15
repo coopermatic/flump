@@ -5,8 +5,10 @@
   <property name="icons.dir" location="icons"/>
   <property name="keystore" location="etc/${ant.project.name}.pfx"/>
   <property name="PASSWORD" value="pass"/>
-  <property name="tsa" value="http://sha256timestamp.ws.symantec.com/sha256/timestamp"/>
+  <property name="tsa" value="http://timestamp.digicert.com"/>
   <property name="swf.version" value="30"/>
+  <property name="flexsdk.dir" location="C:/Users/Simon/Flex"/>
+  <property name="airsdk.dir" location="C:/Users/Simon/AIR/AIRSDK_51.3.1"/>
 
   <property name="ooo-build.vers" value="2.10"/>
   <ant antfile="../etc/bootstrap.xml"/>
@@ -16,8 +18,8 @@
     <delete dir="${deploy.dir}"/>
   </target>
 
-  <target name="prepare" depends="-init-ooo">
-    <maventaskdef groupId="com.threerings.ant" artifactId="actionscript" version="1.8"/>
+  <target name="prepare">
+    <mkdir dir="${deploy.dir}"/>
   </target>
 
   <target name="flexserver" depends="prepare">
@@ -27,7 +29,6 @@
   <target name="genairkeystore" depends="prepare" description="Regenerates the signing certificate. You shouldn't have to run this.">
     <fail unless="PASSWORD" message="Define the cert password with -DPASSWORD=pass to generate a cert"/>
     <sequential>
-      <requireair/>
       <echo level="info">Generating ${keystore}</echo>
       <java jar="${airsdk.dir}/lib/adt.jar" failonerror="true" fork="true" maxmemory="1024m">
         <jvmarg value="-Djava.awt.headless=true"/>
@@ -43,7 +44,12 @@
 
   <target name="test-swf" depends="prepare" description="Builds the test swf">
     <mkdir dir="${deploy.dir}"/>
-    <mavendep pom="pom.xml" pathProp="aslib.path"/>
+    <path id="aslib.path.id">
+      <fileset dir="lib">
+        <include name="*.swc"/>
+      </fileset>
+    </path>
+    <property name="aslib.path" refid="aslib.path.id"/>
     <amxmlc srcdir="src/test/as" libpath="${aslib.path}" id="flump-test"
       dest="${deploy.dir}/flump-test.swf"
       main="flump/test/TestMain.as">
@@ -54,7 +60,6 @@
 
   <target name="package-test" depends="test-swf">
     <sequential>
-      <requireflex/>
       <java jar="${flexsdk.dir}/lib/adt.jar" fork="true" failonerror="true">
         <arg value="-package"/>
         <arg value="-storetype"/><arg value="pkcs12"/>
@@ -72,7 +77,6 @@
 
   <target name="test" depends="test-swf" description="Runs the test app">
     <sequential>
-      <requireair/>
       <exec executable="${airsdk.dir}/bin/adl">
         <arg value="etc/testairdesc.xml"/>
         <arg value="dist"/>
@@ -82,17 +86,21 @@
 
   <target name="swf" depends="prepare" description="Builds the swf">
     <mkdir dir="${deploy.dir}"/>
-    <mavendep pom="pom.xml" pathProp="aslib.path"/>
-    <amxmlc-asc1 srcdir="${asrc.dir}" libpath="${aslib.path}"
-      dest="${deploy.dir}/${ant.project.name}.swf"
-      main="Flump.mxml">
-      <arg value="-swf-version=${swf.version}"/>
-    </amxmlc-asc1>
+    
+    <java jar="${flexsdk.dir}/lib/mxmlc.jar" fork="true" failonerror="true" maxmemory="1024m">
+      <arg value="+flexlib=${flexsdk.dir}/frameworks"/>
+      <arg value="+configname=air"/>
+      <arg value="-source-path+=${asrc.dir}"/> 
+      <arg value="-library-path+=lib"/>
+      <arg value="-swf-version=${swf.version}"/> 
+      <arg value="-output=${deploy.dir}/${ant.project.name}.swf"/> 
+      <arg value="-debug=true"/> 
+      <arg value="${asrc.dir}/Flump.mxml"/> 
+    </java>
   </target>
 
   <target name="package" depends="swf" description="Builds the .air package">
     <sequential>
-      <requireflex/>
       <java jar="${flexsdk.dir}/lib/adt.jar" fork="true" failonerror="true">
         <arg value="-package"/>
         <arg value="-storetype"/><arg value="pkcs12"/>
