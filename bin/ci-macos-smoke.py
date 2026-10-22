@@ -67,7 +67,14 @@ def main():
                            '--', '--export', str(config), '--unmodified']
             # exec fails if an ARM64 slice cannot run; it cannot translate to x86_64.
             command = ['/usr/bin/arch', '-arm64', *command]
-            result = subprocess.run(command, capture_output=True, text=True, timeout=180)
+            try:
+                result = subprocess.run(command, capture_output=True, text=True, timeout=180)
+            except subprocess.TimeoutExpired as error:
+                # Retain diagnostics before the temporary application is removed.
+                def decoded(value):
+                    return value.decode('utf-8', errors='replace') if isinstance(value, bytes) else value or ''
+                result = subprocess.CompletedProcess(command, 124, decoded(error.stdout),
+                                                     decoded(error.stderr) + '\nTimed out after 180 seconds.\n')
             (report / (label + '-stdout.txt')).write_text(
                 result.stdout + result.stderr + '\nExit: ' + str(result.returncode), encoding='utf-8')
             logs = list(app_dir.rglob('exporter.log'))

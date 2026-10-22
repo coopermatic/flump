@@ -26,7 +26,9 @@ REQUIRED = ('APPLE_DEVELOPER_ID_P12_BASE64', 'APPLE_DEVELOPER_ID_P12_PASSWORD',
 def preflight(kind):
     required = list(REQUIRED)
     if kind == 'air4mac':
-        required += ['AIR_SIGNING_P12_BASE64', 'AIR_SIGNING_P12_PASSWORD', 'AIR_TIMESTAMP_URL']
+        required += ['AIR_TIMESTAMP_URL']
+        if os.environ.get('AIR_SIGNING_P12_BASE64') or os.environ.get('AIR_SIGNING_P12_PASSWORD'):
+            required += ['AIR_SIGNING_P12_BASE64', 'AIR_SIGNING_P12_PASSWORD']
     missing = [name for name in required if not os.environ.get(name)]
     if os.environ.get('AIR_LICENSE_CONFIRMED') != 'true':
         missing.append('AIR_LICENSE_CONFIRMED=true (owner confirms appropriate AIR licence)')
@@ -49,7 +51,7 @@ def run(args, **kwargs):
             if value:
                 message = message.replace(value, '[REDACTED]')
         raise RuntimeError(Path(str(args[0])).name + ' failed:\n' + message)
-    return result.stdout
+    return result.stdout + result.stderr
 
 
 def decode(name, path):
@@ -145,17 +147,22 @@ def main():
                 run(['ditto', '-c', '-k', '--keepParent', app, archive])
                 shutil.copy2(root / 'docs/INSTALL-MAC.txt', output)
             else:
-                decode('AIR_SIGNING_P12_BASE64', private / 'air.p12')
+                air_key = private / 'developer-id.p12'
+                air_password = os.environ['APPLE_DEVELOPER_ID_P12_PASSWORD']
+                if os.environ.get('AIR_SIGNING_P12_BASE64'):
+                    decode('AIR_SIGNING_P12_BASE64', private / 'air.p12')
+                    air_key = private / 'air.p12'
+                    air_password = os.environ['AIR_SIGNING_P12_PASSWORD']
                 air = private / 'Flump.air'
                 # AIR identity is independent from Apple's native Developer ID identity.
                 # Retain the old AIR identity for updates only if it is still approved/valid.
                 run(['java', '-jar', Path(os.environ['AIR_HOME']) / 'lib/adt.jar', '-package',
-                     '-storetype', 'pkcs12', '-keystore', private / 'air.p12',
+                     '-storetype', 'pkcs12', '-keystore', air_key,
                      '-tsa', os.environ['AIR_TIMESTAMP_URL'], '-target', 'air4mac',
                      '-storetype', 'KeychainStore', '-alias', identity, air, 'etc/airdesc.xml',
                      'icons/icon_16.png', 'icons/icon_32.png', 'icons/icon_48.png', 'icons/icon_128.png',
                      '-C', 'build', 'flump-exporter.swf'],
-                    cwd=root / 'exporter', input=os.environ['AIR_SIGNING_P12_PASSWORD'] + '\n')
+                    cwd=root / 'exporter', input=air_password + '\n')
                 # Apple does not accept .air as a top-level submission format. Test a ZIP
                 # wrapper, without rewriting signed AIR contents or claiming stapling support.
                 upload = private / 'Flump-air4mac-notarize.zip'

@@ -56,9 +56,10 @@ version increment/certificate migration separately after testing.
    access. An Apple ID, Team ID and app-specific password is an Apple-supported
    alternative, but is not wired into this workflow. No App Store app submission,
    App Store listing or Mac App Store distribution is required.
-4. For `.air` only, an approved **AIR package signing PKCS12 and password**, plus an
-   approved RFC3161 timestamp endpoint. The AIR identity can be distinct from the
-   Apple identity. Retaining the historical AIR identity may preserve update
+4. For `.air` only, an approved RFC3161 timestamp endpoint. By default the workflow
+   uses the **same Developer ID P12 for AIR and native signing**, so another
+   certificate is not required. An optional separate **AIR package signing PKCS12
+   and password** can preserve a distinct AIR identity. Retaining the historical AIR identity may preserve update
    continuity, but the repository contains old signing material: do not treat it as
    a production trust anchor without the owner's review. CI does not read it or its
    historical password. The standalone app uses the Developer ID identity at both
@@ -111,8 +112,8 @@ Configure these **environment secrets** in GitHub's UI, never in chat, YAML or G
 | `APPLE_NOTARY_KEY_ID` | API key identifier |
 | `APPLE_NOTARY_ISSUER_ID` | Team API issuer identifier |
 | `AIR_SDK_LICENSE_BASE64` | Optional: base64 of the existing paid `adt.lic`; omit for eligible free tier |
-| `AIR_SIGNING_P12_BASE64` | For the `.air` step: base64 of approved existing AIR signing P12 |
-| `AIR_SIGNING_P12_PASSWORD` | For the `.air` step: password for that P12 |
+| `AIR_SIGNING_P12_BASE64` | Optional `.air` signing override: base64 of approved existing AIR signing P12 |
+| `AIR_SIGNING_P12_PASSWORD` | Required only with the optional AIR P12 override |
 
 Environment **variables**:
 
@@ -137,13 +138,15 @@ SDK licence, P12/P8 or whole SDK directory is uploaded as an artifact.
 
 ## Running the automation from Windows
 
-Pushing the reviewed work branch runs native compilation, export comparison and
+Pushing build/source changes on the reviewed work branch runs native compilation, export comparison and
 the integration suite on GitHub's Mac. Initially the signing job is skipped.
-Once the configuration above is complete, another push runs the signing job after
+Once the configuration above is complete, another build/source push runs the signing job after
 the protected-environment approval. The workflow also supports **Run workflow**
 with `signed=true`, but GitHub requires a `workflow_dispatch` workflow to exist on
 the default branch before normal manual dispatch is available. Until an approved
-merge, the branch-push trigger avoids needing any change to `master`.
+merge, the branch-push trigger avoids needing any change to `master`. Documentation-only
+pushes do not rerun the build. The owner can rerun the complete prior Actions run
+after configuration, or push an intentional build change.
 
 Tool versions: AIR **51.4.1.2**, Flex **4.16.1**, Ant **1.10.15**, Java **17** on
 ARM64. Apache ZIP hashes and action commit SHAs are pinned. Java's patch release
@@ -161,8 +164,8 @@ suite is diagnostic and visibly retains failure logs: the Windows baseline has
 must not be presented as a clean full integration pass.
 
 The signing job first creates the standalone fallback so its artifact remains
-available even if the subsequent `air4mac` experiment fails. Missing AIR signing
-secrets or an unsuccessful nested notarisation submission fail the `.air` step,
+available even if the subsequent `air4mac` experiment fails. Incomplete optional AIR
+signing credentials or an unsuccessful nested notarisation submission fail the `.air` step,
 with the already validated standalone ZIP still downloadable.
 
 Artifacts in the Actions run (14-day retention):

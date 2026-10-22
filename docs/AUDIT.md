@@ -2,7 +2,8 @@
 
 Audit date: **22 October 2026**. Repository: `coopermatic/flump`.
 Starting revision: `987c277` on `master`. Work branch: `codex/native-air-build`.
-Host: Windows; no macOS execution/signing environment is available in this session.
+Initial host: Windows. A subsequent GitHub-hosted ARM64 macOS build/export run is
+recorded below; Apple signing credentials remain unavailable.
 
 ## Conclusion and evidence boundaries
 
@@ -145,7 +146,7 @@ The colleague's problem file was not supplied, so its cause remains unverified.
 
 | Check | Result in this session |
 | --- | --- |
-| Separate branch | Created `codex/native-air-build`; no merge, push or release publication. |
+| Separate branch | Created and subsequently pushed `codex/native-air-build` for Mac CI; no merge or release publication. |
 | Source/history and package inspection | Completed; traditional AIR archive has SWF/resources/AIR signature, no native Mac-signing payload. |
 | Tool archives | Ant 1.10.15 and Flex 4.16.1 downloaded locally; Apache published checksums match. |
 | Java / Ant execution | Java 17.0.19 and Ant 1.10.15 run on this Windows host. |
@@ -229,3 +230,40 @@ hashes and export-comparison results. The packaged ZIP's integrity check passes.
 
 Native ARM64 operation and successful Windows export are acceptance criteria, not assumptions.
 No assertion is made about untested future macOS releases.
+
+## Follow-up: designer-friendly Mac distribution
+
+The designer must only install, launch and test the supplied application. Developer
+steps now live in [MAC-DISTRIBUTION.md](MAC-DISTRIBUTION.md); the automated macOS
+workflow performs compilation and export tests on GitHub, with a separate protected
+signing/notarisation job. The preferred `air4mac` path and standalone ZIP fallback
+are implemented, but their signed outputs are blocked by unavailable Apple credentials.
+No certificate/private key was generated or published.
+
+First real hosted run: [39823293722](https://github.com/coopermatic/flump/actions/runs/39823293722),
+commit `37cfcfa9e5cdba67899d986ca6cd8d6751bef218`:
+
+- macOS **15.7.9 (24G830)**, native **ARM64**, Java **17.0.20.1**, AIR **51.4.1.2**,
+  Flex **4.16.1**, Ant **1.10.15**.
+- Application and test SWFs compile successfully.
+- Preserved and rebuilt application SWFs both execute under `arch -arm64` through
+  ADL. Known-good squaredance import/export completes; all four output files match
+  under structural JSON/ZIP and byte-exact PNG comparison.
+- Cross-platform comparison against the previously built Windows x64 candidate
+  also passes for all four fixture output files. This is fixture-specific evidence.
+- Full integration suite **does not pass**: the hosted virtual Mac reports
+  `Context3D not available`, then the two-minute timeout terminates ADL. There is
+  no final Passed/Failed list. This is separate from the Windows loop-label failures
+  and does not establish GPU preview compatibility. The diagnostic step retains
+  its actual failure in the log/summary; the job's overall green status is not a
+  full-suite pass. Signature/native packaged-app testing remains pending.
+- Signing job skipped because signing is not configured. No `.app` or `.air` Mac
+  installer was generated. The artifact contains SWFs and evidence only.
+
+Evidence is retained locally under `exporter/build/audit/macos-run-39823293722/`
+and `macos-run-39823293722.log`. The downloaded evidence ZIP SHA-256 is
+`4a03cd5c8b5810da8ac96c95c3f0f989b368514c29223ea94cb42d0c85363b9f`.
+Subsequent automation refinements remove deprecated Node 20 actions, retain smoke
+timeout diagnostics, and make a separate AIR certificate optional. Application,
+runtime and asset bytes remain unchanged; the Windows ZIP still has SHA-256
+`dd2db946acc963aae68b3828134e46c590191c56d05b80ef383c0717a2935eaf`.
