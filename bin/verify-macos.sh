@@ -12,7 +12,7 @@ test -d "$app/Contents/Frameworks/Adobe AIR.framework"
 count=0
 while IFS= read -r -d '' binary; do
   if /usr/bin/file -b "$binary" | /usr/bin/grep -q 'Mach-O'; then
-    /usr/bin/lipo -verify_arch arm64 x86_64 "$binary"
+    /usr/bin/lipo "$binary" -verify_arch arm64 x86_64
     printf 'Universal: %s\n' "$binary"
     count=$((count + 1))
   fi

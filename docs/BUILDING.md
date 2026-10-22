@@ -6,7 +6,9 @@ This procedure preserves the application source, SWF version 30, AIR descriptor 
 See [AUDIT.md](AUDIT.md) for evidence and the current validation status. These instructions
 include Mac steps that still need execution on a Mac; they are not a compatibility certification.
 These are developer instructions. Use [MAC-DISTRIBUTION.md](MAC-DISTRIBUTION.md) for
-GitHub-hosted Mac builds from Windows and [INSTALL-MAC.txt](INSTALL-MAC.txt) for the designer.
+GitHub-hosted Mac builds from Windows and [INSTALL-MAC-INTERNAL.txt](INSTALL-MAC-INTERNAL.txt)
+for the requested ad-hoc internal ZIP. [INSTALL-MAC.txt](INSTALL-MAC.txt) is for the
+optional notarised build only.
 The designer must not compile, sign, package or rebuild the application.
 
 ## Toolchain
@@ -18,13 +20,16 @@ The designer must not compile, sign, package or rebuild the application.
 | Apache Flex | 4.16.1, build 20171115 | Matches the ProductInfo compiler metadata in the tracked Flump SWF. Do not use the obsolete README recommendation of Flex 4.6 for this baseline. |
 | AIR SDK | 51.4.1.2 tested on Windows; minimum 51.3.3.1 for the documented `air4mac` route | Install the desktop components for the host OS through the official SDK Manager. Pin the full version actually validated. Later versions require a fresh regression pass. |
 | AIR overlay | Same AIR version as the packaging SDK | In SDK Manager, use the installed SDK's cog menu > Flex SDK Overlay on a **copy** of Flex 4.16.1. Keep the original compiler and Flex framework. |
-| Python | 3.9+ (optional) | Only needed for the export-comparison helper. |
-| macOS packaging | macOS, Xcode command-line tools, existing Developer ID Application identity | Use an ARM64 JDK on M-series Macs. Windows cannot validate macOS execution or perform Apple's native signing. |
+| Python | 3.9+ | Used by CI packaging, verification and export comparison. |
+| macOS packaging | GitHub macOS ARM64 runner, supplied Apple command-line tools | Ad-hoc internal ZIP needs no Apple identity. Developer ID/notarisation is an optional route. Use an ARM64 JDK. All build tools stay on the runner. |
 
 AIR SDK download: [official download page](https://airsdk.harman.com/download)
 (the vendor redirects this to its current hosting domain),
 [SDK Manager releases](https://github.com/airsdk/airsdkmanager-releases/releases).
-Complete the vendor licence flow and use the appropriate commercial licence for your organisation.
+Complete the vendor licence flow and confirm the appropriate licence for your organisation.
+Internal use is not a free-tier exemption: the current free threshold is company turnover
+below US$50,000 over the preceding 12-month accounting period. See the eligibility gate
+and primary sources in [MAC-DISTRIBUTION.md](MAC-DISTRIBUTION.md).
 Do not commit SDK licence files or signing material.
 
 [Apache Flex 4.16.1 binary archive](https://archive.apache.org/dist/flex/4.16.1/binaries/)
@@ -137,6 +142,11 @@ packages **directly from the descriptor and compiled files**. Do not use the AIR
 shortcut for this SDK. The optional `prepare-package` target is for separate signing workflows.
 
 ## macOS build and signing
+
+For the requested internal ad-hoc ZIP, follow the automated, licence-gated route in
+[MAC-DISTRIBUTION.md](MAC-DISTRIBUTION.md). The remaining commands in this section
+describe the **optional Developer ID/notarised route**, not requirements for the
+designer or for ad-hoc signing.
 
 For an initial **packaging-only** migration test, no Flex installation is needed. Configure
 Java, Ant and the macOS `AIR_HOME`, then run:

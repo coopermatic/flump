@@ -64,7 +64,7 @@ def verify(app):
     binaries, bundles = inventory(app)
     report = []
     for path in binaries:
-        run(['/usr/bin/lipo', '-verify_arch', 'arm64', 'x86_64', path])
+        run(['/usr/bin/lipo', path, '-verify_arch', 'arm64', 'x86_64'])
         run(['/usr/bin/codesign', '--verify', '--all-architectures', '--strict', path])
         for arch in ('arm64', 'x86_64'):
             details = run(['/usr/bin/codesign', '-d', '--verbose=4', '--arch', arch, path])
