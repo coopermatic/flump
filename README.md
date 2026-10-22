@@ -73,6 +73,9 @@ Neither should be assumed to run natively on Apple Silicon. New candidate builds
 See [BUILDING.md](docs/BUILDING.md) for the pinned Flex/AIR toolchain, Windows and macOS builds,
 signing and notarisation, fixture tests, export comparisons and M4 native-process verification.
 The [audit and validation record](docs/AUDIT.md) distinguishes verified results from pending tests.
+For the internal Apple Silicon ZIP built on GitHub from Windows, see
+[Mac distribution](docs/MAC-DISTRIBUTION.md). AIR licensing must be confirmed; Apple
+Developer ID signing and notarisation remain optional future distribution routes.
 For Mac distribution from Windows, use the [GitHub Actions and signing setup](docs/MAC-DISTRIBUTION.md).
 The designer only installs and tests the supplied package; all build steps belong to the build owner.
 

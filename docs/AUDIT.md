@@ -276,3 +276,74 @@ the initial run's Node 20 deprecation warning. Local evidence is under
 `exporter/build/audit/macos-run-39824990026/` and `macos-run-39824990026.log`.
 The evidence ZIP SHA-256 is `60fc00b724037f625e693cb673d020e1445b9125757cf73fb13712551cfefefe`.
 Local actionlint, shell/Python syntax and signing-preflight guards also pass.
+
+## Internal ad-hoc distribution follow-up — 22 October 2026
+
+The owner chose an internal ZIP without Apple membership/notarisation and confirmed
+the new company's turnover is below US$50,000. `FLUMP_AIR_LICENSE_TIER=eligible-free`
+records that decision in repository configuration. SDK licence sections 3.1 and 4
+do not exempt internal use from fees; eligibility must be reviewed when it changes.
+No branding, licence enforcement or runtime code is removed or patched.
+
+The new workflow gates AIR downloads and use on confirmed free/paid eligibility.
+Before confirmation, a real CI run rejected the licence preflight and skipped all
+AIR jobs. The ad-hoc tools were tested independently of AIR: a universal test app,
+nested helper app, versioned framework and dylib were signed, ZIPped, extracted,
+verified and launched explicitly under ARM64. Altering a resource or executable
+was correctly rejected. All five tests pass in the `packaging-tools` job of
+[run 39830017871](https://github.com/coopermatic/flump/actions/runs/39830017871).
+That run's original overall failure was the intentional unresolved-licence gate,
+not a passing Flump build. After owner confirmation, its rerun was superseded by
+the corrected AIR-payload integrity check and cancelled.
+
+Native tests found and fixed signing-order handling for bundle main executables
+and the `lipo -verify_arch` argument order. The latter correction also applies to
+the optional Developer ID verification helper. No export/runtime source changed.
+
+The internal package route uses official ADT conversion of the existing signed AIR,
+avoiding new signing credentials. Its embedded SWF is preserved byte-for-byte.
+The loose historical SWF and AIR-embedded SWF differ in three decompressed bytes
+within ProductInfo tag 41; no other SWF tags differ. The package integrity check
+uses the actual AIR payload, while export comparison uses the loose historical SWF.
+The Developer ID/notarised workflow remains available as an optional source rebuild.
+
+The licence-enabled source validation in
+[run 39830575216](https://github.com/coopermatic/flump/actions/runs/39830575216),
+commit `89608cc953505eaa53ee98fef746f037f7a7bae7`, compiles the application/tests and
+passes the ARM64 ADL export comparison for four files. The diagnostic integration
+suite again reports `Context3D not available` and times out; it is not a full pass.
+Its log is retained at `exporter/build/audit/macos-validation-39830575216.log`.
+
+The same run's **internal-distribution job succeeds** using the current AIR SDK's
+official signed-AIR-to-bundle conversion. No Apple identity, AIR signing private
+key, keychain, notarisation service or paid AIR licence was needed for this
+owner-confirmed free-tier run. The SDK's licensing and branding were not changed.
+
+- macOS 15.7.9 (24G830), ARM64; Java 17.0.21+9; AIR 51.4.1.2; Flex 4.16.1; Ant 1.10.15.
+- Both actual Mach-O components, `Contents/MacOS/Flump` and the Adobe AIR framework
+  binary, contain ARM64 and x86_64. Both slices have valid ad-hoc signatures.
+- Nested signature verification and the outer resource seal pass before ZIP creation
+  and after extracting that ZIP. The fixture tests also prove tampering is rejected.
+- A copy of the ZIP-extracted Flump.app exports squaredance under `arch -arm64`,
+  exits 0 and reports publishing complete. Four files match the preserved baseline:
+  PNG bytes and canonical JSON/ZIP contents. This tests the captive app, not ADL alone.
+- The same four packaged Mac outputs also match the existing Windows x64 candidate's
+  saved outputs using `compare-exports.py` (PNG byte equality and JSON/ZIP comparison).
+- The downloaded GitHub artifact digest and the inner installation ZIP's SHA-256
+  were verified locally. The inner ZIP is retained intact on Windows, preserving
+  Mac executable permissions and framework symlinks; do not unpack/re-ZIP its app
+  with Windows tools before sending it to the designer.
+
+Installation ZIP: `exporter/build/packages/Flump-mac-universal-internal.zip`
+(17,402,579 bytes), SHA-256
+`b38a86519bba7b05aa03fa67cef516d7fd4b57ab11ff79beef2f93208fa3cb44`.
+GitHub artifact: `Flump-mac-internal-39830575216`, expires 5 November 2026.
+Evidence: `exporter/build/audit/macos-internal-evidence-39830575216/` and
+`macos-internal-39830575216.log`; source-build log is recorded above.
+
+The designer still needs to test Finder installation, Gatekeeper/Open Anyway,
+Kind=Apple in Activity Monitor, animation preview and their own known-good assets
+on the M4. No developer tools are required. No claim is made about future macOS
+versions or an entirely passing integration suite. The Windows ZIP remains
+byte-identical to the earlier validated candidate; no production export/runtime
+code, existing animation assets or historical releases were modified.

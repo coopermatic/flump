@@ -51,9 +51,11 @@ The loose `exporter/dist/flump-exporter.swf` is a different binary from the SWF
 inside the historical AIR. The smoke test compares their exports; it does not
 assume those two saved release files are byte-identical.
 
-Mac conversion of that historical AIR remains to be tested. The same operation
-failed in the Windows packager; that does not prove the Mac packager fails too.
-If conversion fails, the job stops without an installation artifact. A direct
+Mac conversion of that historical AIR **passed** with ADT 51.4.1.2 in
+[run 39830575216](https://github.com/coopermatic/flump/actions/runs/39830575216),
+including signature checks and export from the extracted app under ARM64.
+The Windows conversion failure did not reproduce in the Mac packager.
+If conversion fails in a future SDK, the job stops without an installation artifact. A direct
 rebuild would then need an owner-approved existing AIR signing identity supplied
 securely to CI, independently of macOS ad-hoc signing. The task does not generate
 one or copy the historical repository signing credentials into CI.
@@ -273,3 +275,14 @@ No Apple signing/notary credentials have been supplied; those are needed only fo
 the optional Developer ID route. Automation execution results are recorded in
 AUDIT.md; creating workflow files alone is not a successful Mac build.
 The remaining technical work stays with the build owner/automation, not the designer.
+
+The actual internal ZIP is now built and tested on macOS 15.7.9 ARM64, AIR 51.4.1.2.
+Both native binaries (Flump and Adobe AIR) contain ARM64 and x86_64 slices with
+valid ad-hoc signatures. The extracted app completed squaredance export under
+`arch -arm64`; its four output files match the baseline comparison. The installation
+ZIP is available in the run's `Flump-mac-internal-39830575216` artifact and locally at
+`exporter/build/packages/Flump-mac-universal-internal.zip`.
+SHA-256: `b38a86519bba7b05aa03fa67cef516d7fd4b57ab11ff79beef2f93208fa3cb44`.
+It is ready to send for the designer's installation/acceptance test. Finder first
+launch, Open Anyway and GPU preview remain untested on the M4. The hosted VM's
+Context3D integration timeout is still recorded, not hidden as a passing suite.
