@@ -267,3 +267,12 @@ Subsequent automation refinements remove deprecated Node 20 actions, retain smok
 timeout diagnostics, and make a separate AIR certificate optional. Application,
 runtime and asset bytes remain unchanged; the Windows ZIP still has SHA-256
 `dd2db946acc963aae68b3828134e46c590191c56d05b80ef383c0717a2935eaf`.
+
+Final automation verification: [39824990026](https://github.com/coopermatic/flump/actions/runs/39824990026),
+commit `ce38c61ef61020af990323b1bbaa36b5c8f979d7`. Compilation and native ARM64
+export comparison pass again; the full integration suite again reports unavailable
+Context3D and times out. Signing remains skipped. Current Node 24 actions run without
+the initial run's Node 20 deprecation warning. Local evidence is under
+`exporter/build/audit/macos-run-39824990026/` and `macos-run-39824990026.log`.
+The evidence ZIP SHA-256 is `60fc00b724037f625e693cb673d020e1445b9125757cf73fb13712551cfefefe`.
+Local actionlint, shell/Python syntax and signing-preflight guards also pass.

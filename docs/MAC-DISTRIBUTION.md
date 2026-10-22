@@ -183,7 +183,8 @@ Artifacts in the Actions run (14-day retention):
 
 For an approved `.air` package, the designer's workflow is: update/install the
 official [Mac AIR shared runtime](https://airsdk.wxlift.com/runtime), double-click
-`Flump.air`, complete installation, launch and test. For the standalone ZIP, follow
+`Flump.air`, complete installation, launch and test; send [INSTALL-AIR-MAC.txt](INSTALL-AIR-MAC.txt)
+with that package. For the standalone ZIP, follow
 INSTALL-MAC.txt. No Terminal commands or security bypasses are part of either flow.
 
 ## Current completion boundary

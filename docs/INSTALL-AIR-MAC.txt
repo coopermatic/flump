@@ -1,0 +1,25 @@
+Flump .air for Apple Silicon - installation and a quick test
+
+Use these instructions only when the build owner supplies an APPROVED Flump.air
+made with air4mac. The historical Flump.air is not a native Apple Silicon package.
+
+1. Quit Flump. Keep your working installation and projects backed up until the
+   replacement has been tested. The build owner should tell you whether this
+   package updates your existing installation or needs a separate installation.
+2. Install or update the Mac Adobe AIR shared runtime from the current vendor:
+   https://airsdk.wxlift.com/runtime
+   Use the runtime, not the AIR SDK or SDK Manager. The build owner must confirm
+   the supplied runtime is 51.3.3 or later and suitable for Apple Silicon.
+3. Double-click the supplied Flump.air and follow the AIR installer's prompts.
+   Check that the publisher is the one specified by the build owner.
+4. Open Flump from Applications. If it requests Rosetta, reports an unexpected
+   publisher, refuses an update, or shows a security/damaged-app warning, stop
+   and send the exact message to the build owner. Do not change security settings.
+5. Open a COPY of a known-good project with its matching FLA/XFL and SWF. Preview
+   it and export PNG/JSON to a NEW empty folder. Check the result in your usual
+   game workflow, keeping production exports unchanged.
+6. In Activity Monitor, find Flump and check that Kind is Apple. Report this,
+   your macOS version, and the installation/preview/export results.
+
+No compiling, packaging, signing, SDKs, Terminal commands or developer accounts
+are required on your Mac. The build owner handles technical troubleshooting.
