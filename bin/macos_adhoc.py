@@ -36,7 +36,23 @@ def inventory(app):
 
 def sign(app):
     binaries, bundles = inventory(app)
-    for path in binaries + bundles:
+    mains = set()
+    for bundle in bundles:
+        for location in ('Contents/Info.plist', 'Resources/Info.plist', 'Info.plist'):
+            info = bundle / location
+            if not info.is_file():
+                continue
+            name = plistlib.loads(info.read_bytes()).get('CFBundleExecutable')
+            if name:
+                for executable in (bundle / 'Contents/MacOS' / name, bundle / name):
+                    if executable.is_file():
+                        mains.add(executable.resolve())
+    # codesign recognises a bundle's main executable and signs the enclosing
+    # bundle even when passed that file path. Sign it only through its bundle,
+    # after all children have been sealed.
+    objects = [path for path in binaries if path.resolve() not in mains] + bundles
+    objects.sort(key=lambda path: len(path.parts), reverse=True)
+    for path in objects:
         # Preserve SDK entitlements, but do not turn on hardened runtime or change
         # executable code, licence enforcement, splash screens or runtime resources.
         run(['/usr/bin/codesign', '--force', '--sign', '-', '--timestamp=none',

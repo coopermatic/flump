@@ -55,6 +55,17 @@ class NativeSigningTests(unittest.TestCase):
             library.parent.mkdir()
             run(['xcrun', 'clang', '-dynamiclib', '-arch', 'arm64', '-arch', 'x86_64',
                  source, '-o', library])
+            framework = library.parent / 'Example.framework'
+            version = framework / 'Versions/A'
+            (version / 'Resources').mkdir(parents=True)
+            (version / 'Resources/Info.plist').write_bytes(plistlib.dumps(dict(
+                CFBundleExecutable='Example', CFBundleIdentifier='flump.test.framework',
+                CFBundlePackageType='FMWK', CFBundleVersion='1')))
+            run(['xcrun', 'clang', '-dynamiclib', '-arch', 'arm64', '-arch', 'x86_64',
+                 source, '-o', version / 'Example'])
+            (framework / 'Versions/Current').symlink_to('A', target_is_directory=True)
+            (framework / 'Example').symlink_to('Versions/Current/Example')
+            (framework / 'Resources').symlink_to('Versions/Current/Resources', target_is_directory=True)
             resource = app / 'Contents/Resources/test.txt'
             resource.parent.mkdir()
             resource.write_text('original')
