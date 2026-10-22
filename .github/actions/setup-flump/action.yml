@@ -7,6 +7,11 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Check AIR licence eligibility before SDK download
+      shell: bash
+      env:
+        AIR_SDK_LICENSE_BASE64: ${{ inputs.air-license-base64 }}
+      run: python3 bin/check-air-license.py
     - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
       with:
         distribution: temurin

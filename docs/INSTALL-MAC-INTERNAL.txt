@@ -1,0 +1,29 @@
+Flump — internal Mac build (ad-hoc signed, not notarised)
+
+Use only the ZIP supplied by your build owner after they confirm its validation.
+No AIR runtime, Rosetta, Xcode, Terminal or developer account is needed.
+
+1. Quit your existing Flump. Keep that working copy as a backup.
+2. Double-click Flump-mac-universal-internal.zip in Finder.
+3. Drag the extracted Flump.app to Applications. Keep your backup separately;
+   do not replace it until the new app has passed your animation tests.
+4. Double-click the new Flump in Applications.
+5. If macOS says the developer cannot be verified or Apple cannot check the app:
+   close the alert, open System Settings > Privacy & Security, scroll down and
+   click Open Anyway for Flump. Confirm Open and authenticate if asked.
+   This is a one-app exception. Later launches should work normally.
+
+If Open Anyway is absent, your Mac may be managed by your organisation. Ask your
+build owner for help. If macOS reports damage or malware, stop and report the exact
+message. Do not disable security settings or run Terminal commands.
+
+Test a COPY of a known-good Animate project, including its matching published SWF.
+Open it in Flump, preview the animation, and export PNG/JSON to a new empty folder.
+Ask your build owner to check the output in the existing game before replacing
+any working assets. The normal AIR free-tier splash screen may appear.
+
+To check native Apple Silicon execution: open Activity Monitor from Applications
+> Utilities, locate Flump, and check that its Kind column says Apple, not Intel.
+Report your macOS version and any launch, preview or export problems to the owner.
+
+Apple's instructions: https://support.apple.com/en-gb/102445

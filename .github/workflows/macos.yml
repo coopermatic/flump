@@ -10,16 +10,46 @@ on:
         description: Build signed distribution candidates (requires configured environment)
         type: boolean
         default: false
+      internal:
+        description: Build internal ad-hoc ZIP (requires confirmed AIR eligibility)
+        type: boolean
+        default: true
 
 permissions:
   contents: read
+
+env:
+  FLUMP_AIR_LICENSE_TIER: ${{ vars.FLUMP_AIR_LICENSE_TIER }}
 
 concurrency:
   group: flump-macos-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  packaging-tools:
+    # No AIR download or SDK use. This can run while eligibility is unresolved.
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test licence guards, native ad-hoc signatures and ZIP round trip
+        run: python3 bin/test-macos-packaging.py
+
+  license:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require owner confirmation before any AIR SDK use
+        env:
+          AIR_SDK_LICENSE_BASE64: ${{ secrets.AIR_SDK_LICENSE_BASE64 }}
+        run: python3 bin/check-air-license.py
+
   validate:
+    needs: license
     runs-on: macos-15
     timeout-minutes: 25
     steps:
@@ -27,6 +57,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-flump
+        with:
+          air-license-base64: ${{ secrets.AIR_SDK_LICENSE_BASE64 }}
       - name: Compile unchanged application and tests
         run: ant -f exporter/build.xml check-air verify-libs swf test-swf
       - name: Native ARM64 export comparison
@@ -58,6 +90,38 @@ jobs:
             exporter/build/ci/
             exporter/build/flump-exporter.swf
             exporter/build/flump-test.swf
+
+  internal-distribution:
+    needs: [validate, packaging-tools]
+    if: github.event_name == 'push' || inputs.internal
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-flump
+        with:
+          air-license-base64: ${{ secrets.AIR_SDK_LICENSE_BASE64 }}
+      - name: Bundle, ad-hoc sign, verify ZIP and export under ARM64
+        env:
+          AIR_SDK_LICENSE_BASE64: ${{ secrets.AIR_SDK_LICENSE_BASE64 }}
+        run: python3 bin/ci-package-macos-adhoc.py
+      - name: Save tested internal installation ZIP
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Flump-mac-internal-${{ github.run_id }}
+          retention-days: 14
+          if-no-files-found: error
+          path: exporter/build/internal-distribution/*
+      - name: Save internal packaging diagnostics
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: macos-internal-evidence-${{ github.run_id }}
+          retention-days: 14
+          if-no-files-found: warn
+          path: exporter/build/ci/
 
   distribution:
     needs: validate
