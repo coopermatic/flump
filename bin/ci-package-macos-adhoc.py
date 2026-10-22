@@ -13,6 +13,7 @@ import platform
 import shutil
 import sys
 import tempfile
+import zipfile
 
 from macos_adhoc import run, sign, verify
 
@@ -44,10 +45,11 @@ def main():
         (report / 'adt.txt').write_text(result, encoding='utf-8')
         if not (app / 'Contents/Frameworks/Adobe AIR.framework').is_dir():
             raise RuntimeError('ADT did not produce the expected captive-runtime application.')
-        shipped = root / 'exporter/dist/flump-exporter.swf'
+        with zipfile.ZipFile(source) as signed_air:
+            shipped = signed_air.read('flump-exporter.swf')
         payloads = list(app.rglob('flump-exporter.swf'))
-        if len(payloads) != 1 or payloads[0].read_bytes() != shipped.read_bytes():
-            raise RuntimeError('Packaged bytecode differs from the preserved release SWF.')
+        if len(payloads) != 1 or payloads[0].read_bytes() != shipped:
+            raise RuntimeError('Packaged bytecode differs from the SWF inside the preserved signed AIR.')
         sign(app)
         (report / 'signatures.txt').write_text(verify(app), encoding='utf-8')
         shutil.copy2(root / 'docs/INSTALL-MAC-INTERNAL.txt', work)
@@ -67,9 +69,9 @@ def main():
         verify(final_app)
         manifest = dict(source_commit=run(['git', 'rev-parse', 'HEAD']).strip(),
                         air_sdk='51.4.1.2', packaging='ADT signed-AIR conversion; native ad-hoc signing',
-                        bytecode='preserved exporter/dist/flump-exporter.swf, not recompiled SWF',
+                        bytecode='SWF inside preserved exporter/dist/flump-exporter.air, not recompiled SWF',
                         air_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
-                        swf_sha256=hashlib.sha256(shipped.read_bytes()).hexdigest(),
+                        swf_sha256=hashlib.sha256(shipped).hexdigest(),
                         test='Extracted application exported squaredance under arch -arm64',
                         limitations='Finder/Gatekeeper first launch and GPU preview need M4 acceptance')
         output = root / 'exporter/build/internal-distribution'

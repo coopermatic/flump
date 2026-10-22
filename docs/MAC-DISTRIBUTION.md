@@ -44,9 +44,12 @@ After the existing native compilation/export validation, the `internal-distribut
 job invokes `bin/ci-package-macos-adhoc.py`. It asks ADT 51.4.1.2 to convert the
 **preserved signed `exporter/dist/flump-exporter.air`** to a captive app with the
 current runtime. This avoids needing an AIR signing private key. The package keeps
-the release SWF byte-for-byte; it does **not** contain the newly compiled SWF from
+the SWF inside that AIR byte-for-byte; it does **not** contain the newly compiled SWF from
 the validation job. The script checks this explicitly and records both source hashes
 in `build-info.json`. The separate Developer ID route below rebuilds from source.
+The loose `exporter/dist/flump-exporter.swf` is a different binary from the SWF
+inside the historical AIR. The smoke test compares their exports; it does not
+assume those two saved release files are byte-identical.
 
 Mac conversion of that historical AIR remains to be tested. The same operation
 failed in the Windows packager; that does not prove the Mac packager fails too.
@@ -262,9 +265,11 @@ INSTALL-MAC.txt. No Terminal commands or security bypasses are part of either fl
 
 ## Current completion boundary
 
-Apple membership/certificate availability is unconfirmed (user answered "Neither /
-not sure"); no Apple signing/notary credentials have been supplied. AIR is currently
-reported as free tier and company eligibility remains for the owner to confirm.
-No signed Mac installer is available yet. Automation execution results are recorded
-in AUDIT.md; creating these workflow files alone is not a successful Mac build.
+On 22 October 2026 the owner confirmed that the new company's turnover is below
+US$50,000. Repository variable `FLUMP_AIR_LICENSE_TIER=eligible-free` records that
+confirmation. Recheck at renewal and when eligibility changes; internal-only use
+does not extend it. Required branding remains enabled.
+No Apple signing/notary credentials have been supplied; those are needed only for
+the optional Developer ID route. Automation execution results are recorded in
+AUDIT.md; creating workflow files alone is not a successful Mac build.
 The remaining technical work stays with the build owner/automation, not the designer.
