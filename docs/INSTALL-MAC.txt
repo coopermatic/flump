@@ -1,0 +1,25 @@
+Flump for Mac - installation and a quick test
+
+Use these instructions only with the approved Flump-mac-universal.zip supplied
+by Peek & Poke. No SDK, Java, Xcode, Terminal or Rosetta is needed.
+
+1. Quit Flump if it is running. Keep your previous Flump application as a backup
+   until this version has been tested; ask the build owner if an existing app
+   with the same name would be replaced.
+2. Double-click Flump-mac-universal.zip to extract Flump.app.
+3. Drag Flump.app into Applications, then open it there. Confirm the normal
+   downloaded-app prompt if macOS displays one. If macOS instead reports an
+   unverified developer, damaged app or malware warning, stop and send the exact
+   message to the build owner. Do not change Mac security settings.
+4. Open a COPY of a known-good Flump project and matching Animate/SWF files.
+   Preview the animation, export PNG/JSON to a NEW empty folder, and check the
+   results in the normal game workflow. Keep production exports unchanged.
+5. Open Activity Monitor, find Flump, and check that its Kind is Apple.
+   Report the Mac's macOS version, whether installation/preview/export worked,
+   and any error message to the build owner.
+
+The AIR runtime is inside this application. A separate AIR runtime installation
+is not needed. The free-tier build may show an AIR branding splash screen.
+
+These are end-user checks only. The build owner is responsible for compilation,
+packaging, signing, notarisation and troubleshooting.

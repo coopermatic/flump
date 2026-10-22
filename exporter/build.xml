@@ -1,122 +1,161 @@
-<?xml version="1.0" standalone="yes"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <project name="flump-exporter" default="swf" basedir=".">
+  <!-- No Maven/bootstrap downloads: use the exact libraries already in this fork. -->
+  <property environment="env"/>
+  <condition property="flexsdk.dir" value="${env.FLEX_HOME}"><isset property="env.FLEX_HOME"/></condition>
+  <condition property="airsdk.dir" value="${env.AIR_HOME}"><isset property="env.AIR_HOME"/></condition>
+  <condition property="keystore" value="${env.FLUMP_SIGNING_KEYSTORE}"><isset property="env.FLUMP_SIGNING_KEYSTORE"/></condition>
   <property name="asrc.dir" location="src/main/as"/>
-  <property name="deploy.dir" location="dist"/>
-  <property name="icons.dir" location="icons"/>
-  <property name="keystore" location="etc/${ant.project.name}.pfx"/>
-  <property name="PASSWORD" value="pass"/>
-  <property name="tsa" value="http://timestamp.digicert.com"/>
+  <!-- dist contains tracked releases. Never build or clean there. -->
+  <property name="deploy.dir" location="build"/>
   <property name="swf.version" value="30"/>
-  <property name="flexsdk.dir" location="${user.home}/Flex"/>
-  <property name="airsdk.dir" location="${user.home}/AIR/AIRSDK_51.3.1"/>
+  <property name="debug" value="true"/>
+  <property name="test.timeout" value="120000"/>
+  <property name="tsa" value="none"/>
+  <condition property="adl.name" value="adl64.exe" else="adl"><os family="windows"/></condition>
 
-  <property name="ooo-build.vers" value="2.10"/>
-  <ant antfile="../etc/bootstrap.xml"/>
-  <import file="${user.home}/.m2/ooo-build/${ooo-build.vers}/ooo-build.xml"/>
-
-  <target name="clean" description="Removes all generated files and directories">
-    <delete dir="${deploy.dir}"/>
+  <target name="check-flex">
+    <fail unless="flexsdk.dir" message="Set FLEX_HOME or -Dflexsdk.dir to a Flex SDK with the AIR overlay. See docs/BUILDING.md."/>
+    <available file="${flexsdk.dir}/lib/mxmlc.jar" property="compiler.present"/>
+    <available file="${flexsdk.dir}/frameworks/air-config.xml" property="air.config.present"/>
+    <available file="${flexsdk.dir}/frameworks/libs/air/airglobal.swc" property="air.api.present"/>
+    <fail unless="compiler.present" message="Flex lib/mxmlc.jar is missing."/>
+    <fail unless="air.config.present" message="Flex frameworks/air-config.xml is missing."/>
+    <fail unless="air.api.present" message="AIR overlay frameworks/libs/air/airglobal.swc is missing."/>
   </target>
 
-  <target name="prepare">
+  <target name="check-air">
+    <fail unless="airsdk.dir" message="Set AIR_HOME or -Dairsdk.dir to AIR SDK 51.3.3.1 or later. See docs/BUILDING.md."/>
+    <available file="${airsdk.dir}/lib/adt.jar" property="adt.present"/>
+    <fail unless="adt.present" message="AIR lib/adt.jar is missing."/>
+    <java jar="${airsdk.dir}/lib/adt.jar" fork="true" failonerror="true"><arg value="-version"/></java>
+  </target>
+
+  <target name="verify-libs" description="Verify the pinned, vendored SWC files">
+    <fail message="Expected all six vendored SWCs; do not add, remove or upgrade libraries for this build.">
+      <condition><not><resourcecount count="6"><fileset dir="lib" includes="*.swc"/></resourcecount></not></condition>
+    </fail>
+    <checksum algorithm="SHA-256" fileext=".sha256" verifyproperty="libraries.valid">
+      <fileset dir="lib" includes="*.swc"/>
+    </checksum>
+    <fail message="Vendored SWC checksums differ; restore the pinned libraries before building.">
+      <condition><not><istrue value="${libraries.valid}"/></not></condition>
+    </fail>
+  </target>
+
+  <target name="prepare" depends="check-flex,verify-libs">
+    <!-- TestRunner resolves ../src/test/resources relative to this directory. -->
+    <fail message="deploy.dir must remain exporter/build to protect releases and resolve test fixtures.">
+      <condition><not><equals arg1="${deploy.dir}" arg2="${basedir}${file.separator}build"/></not></condition>
+    </fail>
     <mkdir dir="${deploy.dir}"/>
   </target>
 
-  <target name="flexserver" depends="prepare">
-    <flexserver/>
-  </target>
-
-  <target name="genairkeystore" depends="prepare" description="Regenerates the signing certificate. You shouldn't have to run this.">
-    <fail unless="PASSWORD" message="Define the cert password with -DPASSWORD=pass to generate a cert"/>
+  <macrodef name="compile-air">
+    <attribute name="main"/><attribute name="output"/>
+    <element name="extra" optional="true"/>
     <sequential>
-      <echo level="info">Generating ${keystore}</echo>
-      <java jar="${airsdk.dir}/lib/adt.jar" failonerror="true" fork="true" maxmemory="1024m">
-        <jvmarg value="-Djava.awt.headless=true"/>
-        <arg value="-certificate"/>
-        <arg value="-cn"/><arg value="SelfSigned"/>
-        <arg value="-o"/><arg value="Tim Conkling"/>
-        <arg value="2048-RSA"/>
-        <arg value="${keystore}"/>
-        <arg value="${PASSWORD}"/>
+      <java jar="${flexsdk.dir}/lib/mxmlc.jar" fork="true" failonerror="true" maxmemory="1024m">
+        <arg value="+flexlib=${flexsdk.dir}/frameworks"/><arg value="+configname=air"/>
+        <arg value="+airHome=${flexsdk.dir}"/>
+        <arg value="-source-path+=${asrc.dir}"/><arg value="-library-path+=${basedir}/lib"/>
+        <arg value="-swf-version=${swf.version}"/><arg value="-debug=${debug}"/>
+        <extra/>
+        <arg value="-output=${deploy.dir}/@{output}"/><arg value="@{main}"/>
       </java>
     </sequential>
+  </macrodef>
+
+  <target name="swf" depends="prepare" description="Compile the unchanged Flump application">
+    <compile-air main="${asrc.dir}/Flump.mxml" output="flump-exporter.swf"/>
+    <copy todir="${deploy.dir}/icons"><fileset dir="icons"/></copy>
   </target>
 
-  <target name="test-swf" depends="prepare" description="Builds the test swf">
-    <mkdir dir="${deploy.dir}"/>
-    <path id="aslib.path.id">
-      <fileset dir="lib">
-        <include name="*.swc"/>
-      </fileset>
-    </path>
-    <property name="aslib.path" refid="aslib.path.id"/>
-    <amxmlc srcdir="src/test/as" libpath="${aslib.path}" id="flump-test"
-      dest="${deploy.dir}/flump-test.swf"
-      main="flump/test/TestMain.as">
-      <arg value="-source-path+=${asrc.dir}"/>
-      <arg value="-swf-version=${swf.version}"/>
-    </amxmlc>
+  <target name="test-swf" depends="prepare" description="Compile the existing integration suite">
+    <compile-air main="${basedir}/src/test/as/flump/test/TestMain.as" output="flump-test.swf">
+      <extra><arg value="-source-path+=${basedir}/src/test/as"/></extra>
+    </compile-air>
   </target>
 
-  <target name="package-test" depends="test-swf">
-    <sequential>
-      <java jar="${flexsdk.dir}/lib/adt.jar" fork="true" failonerror="true">
-        <arg value="-package"/>
-        <arg value="-storetype"/><arg value="pkcs12"/>
-        <arg value="-keystore"/><arg value="${keystore}"/>
-        <arg value="-storepass"/><arg value="${PASSWORD}"/>
-        <arg value="-tsa"/><arg value="${tsa}"/>
-        <arg value="${deploy.dir}/${ant.project.name}.air"/>
-        <arg value="etc/testairdesc.xml"/>
-        <arg value="-C"/>
-        <arg value="${deploy.dir}"/>
-        <arg value="flump-test.swf"/>
-      </java>
-    </sequential>
+  <target name="test" depends="test-swf,check-air" description="Run import, publish and playback tests (requires a desktop)">
+    <exec executable="${airsdk.dir}/bin/${adl.name}" failonerror="true" timeout="${test.timeout}">
+      <arg value="${basedir}/etc/testairdesc.xml"/><arg value="${deploy.dir}"/>
+    </exec>
   </target>
 
-  <target name="test" depends="test-swf" description="Runs the test app">
-    <sequential>
-      <exec executable="${airsdk.dir}/bin/adl">
-        <arg value="etc/testairdesc.xml"/>
-        <arg value="dist"/>
-      </exec>
-    </sequential>
+  <target name="run" depends="swf,check-air" description="Launch Flump through ADL">
+    <exec executable="${airsdk.dir}/bin/${adl.name}" failonerror="true">
+      <arg value="${basedir}/etc/airdesc.xml"/><arg value="${deploy.dir}"/>
+    </exec>
   </target>
 
-  <target name="swf" depends="prepare" description="Builds the swf">
-    <mkdir dir="${deploy.dir}"/>
-    
-    <java jar="${flexsdk.dir}/lib/mxmlc.jar" fork="true" failonerror="true" maxmemory="1024m">
-      <arg value="+flexlib=${flexsdk.dir}/frameworks"/>
-      <arg value="+configname=air"/>
-      <arg value="-source-path+=${asrc.dir}"/> 
-      <arg value="-library-path+=lib"/>
-      <arg value="-swf-version=${swf.version}"/> 
-      <arg value="-output=${deploy.dir}/${ant.project.name}.swf"/> 
-      <arg value="-debug=true"/> 
-      <arg value="${asrc.dir}/Flump.mxml"/> 
+  <target name="prepare-package" depends="swf,check-air" description="Create unsigned AIRI for separate signing workflows">
+    <java jar="${airsdk.dir}/lib/adt.jar" fork="true" failonerror="true" dir="${basedir}">
+      <arg value="-prepare"/><arg value="${deploy.dir}/flump-exporter.airi"/>
+      <arg value="etc/airdesc.xml"/>
+      <arg value="icons/icon_16.png"/><arg value="icons/icon_32.png"/>
+      <arg value="icons/icon_48.png"/><arg value="icons/icon_128.png"/>
+      <arg value="-C"/><arg value="${deploy.dir}"/><arg value="flump-exporter.swf"/>
     </java>
   </target>
 
-  <target name="package" depends="swf" description="Builds the .air package">
-    <sequential>
-      <java jar="${flexsdk.dir}/lib/adt.jar" fork="true" failonerror="true">
-        <arg value="-package"/>
-        <arg value="-storetype"/><arg value="pkcs12"/>
-        <arg value="-keystore"/><arg value="${keystore}"/>
-        <arg value="-storepass"/><arg value="${PASSWORD}"/>
-        <arg value="-tsa"/><arg value="${tsa}"/>
-        <arg value="${deploy.dir}/${ant.project.name}.air"/>
-        <arg value="etc/airdesc.xml"/>
-        <arg value="${icons.dir}/icon_16.png"/>
-        <arg value="${icons.dir}/icon_32.png"/>
-        <arg value="${icons.dir}/icon_48.png"/>
-        <arg value="${icons.dir}/icon_128.png"/>
-        <arg value="-C"/>
-        <arg value="${deploy.dir}"/>
-        <arg value="${ant.project.name}.swf"/>
-      </java>
-    </sequential>
+  <target name="check-windows">
+    <fail message="Build the Windows bundle on Windows."><condition><not><os family="windows"/></not></condition></fail>
+  </target>
+
+  <target name="check-windows-signing">
+    <fail unless="keystore" message="Set FLUMP_SIGNING_KEYSTORE to an existing approved PKCS12 certificate. No keys are generated."/>
+    <fail unless="env.FLUMP_SIGNING_PASSWORD" message="Set FLUMP_SIGNING_PASSWORD securely in the process environment; do not put it in command-line arguments or logs."/>
+    <available file="${keystore}" property="keystore.present"/>
+    <fail unless="keystore.present" message="The supplied signing keystore does not exist."/>
+  </target>
+
+  <target name="bundle-windows" depends="check-windows,check-windows-signing,swf,check-air" description="Create a Windows x64 captive-runtime folder">
+    <mkdir dir="${deploy.dir}/windows"/>
+    <!-- Feed ADT's password prompt through stdin, never a command-line argument. -->
+    <java jar="${airsdk.dir}/lib/adt.jar" fork="true" failonerror="true" dir="${basedir}"
+          inputstring="${env.FLUMP_SIGNING_PASSWORD}${line.separator}">
+      <arg value="-package"/><arg value="-storetype"/><arg value="pkcs12"/>
+      <arg value="-keystore"/><arg value="${keystore}"/><arg value="-tsa"/><arg value="${tsa}"/>
+      <arg value="-target"/><arg value="bundle"/>
+      <arg value="-arch"/><arg value="x64"/>
+      <arg value="${deploy.dir}/windows/Flump"/><arg value="etc/airdesc.xml"/>
+      <arg value="icons/icon_16.png"/><arg value="icons/icon_32.png"/>
+      <arg value="icons/icon_48.png"/><arg value="icons/icon_128.png"/>
+      <arg value="-C"/><arg value="${deploy.dir}"/><arg value="flump-exporter.swf"/>
+    </java>
+  </target>
+
+  <target name="check-macos">
+    <fail message="Build and sign the macOS bundle on macOS."><condition><not><os family="mac"/></not></condition></fail>
+    <fail unless="mac.signing.alias" message="Set -Dmac.signing.alias to your existing Developer ID Application identity in Keychain. No certificates are generated by this build."/>
+  </target>
+
+  <target name="bundle-macos" depends="check-macos,swf,check-air" description="Create a Developer ID signed universal captive-runtime app">
+    <mkdir dir="${deploy.dir}/macos"/>
+    <java jar="${airsdk.dir}/lib/adt.jar" fork="true" failonerror="true" dir="${basedir}">
+      <arg value="-package"/>
+      <arg value="-storetype"/><arg value="KeychainStore"/><arg value="-alias"/><arg value="${mac.signing.alias}"/>
+      <arg value="-target"/><arg value="bundle"/>
+      <arg value="-storetype"/><arg value="KeychainStore"/><arg value="-alias"/><arg value="${mac.signing.alias}"/>
+      <arg value="${deploy.dir}/macos/Flump.app"/><arg value="etc/airdesc.xml"/>
+      <arg value="icons/icon_16.png"/><arg value="icons/icon_32.png"/>
+      <arg value="icons/icon_48.png"/><arg value="icons/icon_128.png"/>
+      <arg value="-C"/><arg value="${deploy.dir}"/><arg value="flump-exporter.swf"/>
+    </java>
+  </target>
+
+  <target name="repackage-macos" depends="check-macos,check-air" description="Wrap the preserved AIR release in a signed universal runtime without recompiling">
+    <mkdir dir="${basedir}/build/macos-existing"/>
+    <java jar="${airsdk.dir}/lib/adt.jar" fork="true" failonerror="true">
+      <arg value="-package"/><arg value="-target"/><arg value="bundle"/>
+      <arg value="-storetype"/><arg value="KeychainStore"/><arg value="-alias"/><arg value="${mac.signing.alias}"/>
+      <arg value="${basedir}/build/macos-existing/Flump.app"/>
+      <arg value="${basedir}/dist/flump-exporter.air"/>
+    </java>
+  </target>
+
+  <target name="package" depends="prepare-package" description="Prepare unsigned AIRI; use bundle-windows or bundle-macos for an app">
+    <echo>AIRI is an intermediate, not an installer. Run bundle-windows or bundle-macos.</echo>
   </target>
 </project>

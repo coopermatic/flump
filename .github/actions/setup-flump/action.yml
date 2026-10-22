@@ -1,0 +1,21 @@
+name: Set up pinned Flump tools
+description: AIR 51.4.1.2, Java 17, Ant 1.10.15 and the existing Flex compiler
+inputs:
+  air-license-base64:
+    description: Optional existing paid AIR licence; never a literal value in YAML
+    required: false
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+      with:
+        distribution: temurin
+        java-version: '17'
+        architecture: aarch64
+    - uses: joshtynjala/setup-adobe-air-action@05ea6f91dae02a43f66f17a862ac95b34f4fc9dc
+      with:
+        air-version: '51.4.1.2'
+        accept-license: true
+        license-base64: ${{ inputs.air-license-base64 }}
+    - shell: bash
+      run: bash bin/ci-setup-flex.sh

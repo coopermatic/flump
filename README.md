@@ -14,8 +14,8 @@ expressive animations on mobile platforms. Runtimes have been written for [Starl
 
 # Creating a movie for Flump
 
-1. [Install the latest version of Adobe AIR](http://get.adobe.com/air/).
-1. [Install the Flump AIR app](https://github.com/threerings/flump/releases/latest).
+1. Install a validated Flump build. See [build and installation instructions](docs/BUILDING.md).
+   The historical shared-runtime `.air` release is retained, but is not a native Apple Silicon build.
 2. Create a `.fla` in Flash CS 5, 5.5, or 6.
 3. Create a new item in the library and draw a shape in its canvas.
 4. Right-click on the item, select its properties, tick the **Export for ActionScript** and
@@ -63,35 +63,33 @@ Flump works with Flash CS 5 and later
 
 # Precompiled binaries
 
-[Get them here](https://github.com/threerings/flump/releases/latest)
+The fork's previous `.air` and `.swf` are preserved in `exporter/dist` for comparison.
+[Historical upstream releases](https://github.com/threerings/flump/releases/latest) are also available.
+Neither should be assumed to run natively on Apple Silicon. New candidate builds go in
+`exporter/build`; validate them before replacing a working installation.
 
 # Building
 
-You will need these dependencies to build Flump:
+See [BUILDING.md](docs/BUILDING.md) for the pinned Flex/AIR toolchain, Windows and macOS builds,
+signing and notarisation, fixture tests, export comparisons and M4 native-process verification.
+The [audit and validation record](docs/AUDIT.md) distinguishes verified results from pending tests.
+For Mac distribution from Windows, use the [GitHub Actions and signing setup](docs/MAC-DISTRIBUTION.md).
+The designer only installs and tests the supplied package; all build steps belong to the build owner.
 
-* [Flex SDK 4.6](http://www.adobe.com/devnet/flex/flex-sdk-download.html).
+With Java, Ant, `FLEX_HOME` (Flex 4.16.1 with a matching AIR overlay) and `AIR_HOME` configured:
 
-* [AIR SDK](https://www.adobe.com/devnet/air/air-sdk-download.html). 
+```sh
+ant -f exporter/build.xml verify-libs
+ant -f exporter/build.xml swf test
+# Configure existing AIR signing credentials as described in BUILDING.md first:
+ant -f exporter/build.xml bundle-windows   # on Windows
+# On macOS, use bundle-macos with your existing Developer ID Application identity.
+```
 
-* [AIR SDK with Flex Support](https://www.adobe.com/devnet/air/air-sdk-download.html) You'll also need to download the version of the AIR SDK that comes *without* the new compiler (links near the bottom of that page) and [follow the instructions here to overlay it on the Flex SDK](http://helpx.adobe.com/x-productkb/multi/how-overlay-air-sdk-flex-sdk.html)
-
-* [Ant](http://ant.apache.org/)
-
-1. Build the flump runtime
-
-        flump/runtime$ ant -Dairsdk.dir=/path/to/air maven-deploy
-
-2. Build the flump exporter
-
-        flump/exporter$ ant -Dflexsdk.dir=/path/to/flex swf
-        
-3. Build the flump demo
-
-        flump/demo ant -Dairsdk.dir=/path/to/air
-
-4. To get AIR to report errors, run Flump with the AIR debugger (adl):
-
-        flump/exporter$ /path/to/air/bin/adl etc/airdesc.xml dist
+The exporter uses the six existing SWCs in `exporter/lib`; rebuilding or deploying the runtime
+and demo is unnecessary. Application source, fixtures and old releases are preserved.
+For the smallest initial Mac migration test, `repackage-macos` wraps the preserved release in a
+current signed universal AIR runtime without recompiling; see BUILDING.md for the full command.
         
 # Runtimes
 

@@ -1,1 +1,13 @@
 exporter/src/test/export
+
+# Local tools and new build output; keep the historical dist releases tracked.
+/.tools/
+/exporter/build/
+*.p12
+*.pfx
+*.p8
+*.keychain-db
+adt.lic
+*.mobileprovision
+*.provisionprofile
+__pycache__/

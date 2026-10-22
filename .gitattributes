@@ -1,0 +1,2 @@
+# Keep the macOS verification script executable by bash after Windows checkouts.
+bin/*.sh text eol=lf

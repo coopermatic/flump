@@ -24,7 +24,8 @@ public class TestRunner extends Sprite
 {
     public static const root :File = new File(File.applicationDirectory.nativePath);
     public static const resources :File = root.resolvePath('../src/test/resources');
-    public static const dist :File = root.resolvePath('../dist');
+    // Keep generated test exports beside the test SWF, away from tracked releases.
+    public static const dist :File = root;
 
     public function TestRunner () {
         Log.setLevel("", Log.INFO);
